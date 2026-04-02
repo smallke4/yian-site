@@ -227,10 +227,13 @@ exports.handler = async (event) => {
   const store = getStore("site-content");
 
   // GET — public, frontend uses this
-  if (event.httpMethod === "GET") {
+if (event.httpMethod === "GET") {
     try {
       const raw = await store.get(BLOB_KEY);
-      const data = raw ? JSON.parse(raw) : DEFAULT_DATA;
+      let data = DEFAULT_DATA;
+      if (raw) {
+        try { data = JSON.parse(raw); } catch { data = DEFAULT_DATA; }
+      }
       return { statusCode: 200, headers, body: JSON.stringify(data) };
     } catch {
       return { statusCode: 200, headers, body: JSON.stringify(DEFAULT_DATA) };
