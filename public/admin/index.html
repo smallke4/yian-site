@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>後台登入 | 翊安地產</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-dark: #064e3b;
+      --green-mid:  #16a34a;
+      --green-light:#bbf7d0;
+      --surface:    #ffffff;
+      --text:       #111827;
+      --muted:      #6b7280;
+      --border:     #e5e7eb;
+      --danger:     #ef4444;
+    }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #064e3b 0%, #065f46 40%, #0d9488 100%);
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 48px 44px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo-icon {
+      font-size: 2.8rem;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .logo-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--green-dark);
+    }
+    .logo-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    input[type="password"] {
+      width: 100%;
+      padding: 13px 48px 13px 16px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text);
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    input[type="password"]:focus {
+      border-color: var(--green-mid);
+    }
+    input[type="password"].error {
+      border-color: var(--danger);
+    }
+
+    .toggle-pw {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 1rem;
+      padding: 4px;
+    }
+
+    .error-msg {
+      font-size: 0.8rem;
+      color: var(--danger);
+      margin-top: 6px;
+      min-height: 18px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-login {
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--green-dark), var(--green-mid));
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-login:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-login:active { transform: translateY(0); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .btn-login.loading .spinner { display: block; }
+    .btn-login.loading .btn-text { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .back-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .back-link a {
+      color: var(--green-mid);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .back-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <span class="logo-icon">🏡</span>
+      <div class="logo-title">翊安地產 後台管理</div>
+      <div class="logo-sub">Admin Dashboard</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <label for="password">管理員密碼</label>
+      <div class="input-wrap">
+        <input type="password" id="password" placeholder="請輸入密碼" autocomplete="current-password" />
+        <button class="toggle-pw" id="togglePw" type="button" title="顯示/隱藏密碼">👁️</button>
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <button class="btn-login" id="loginBtn">
+      <div class="spinner"></div>
+      <span class="btn-text">🔐 登入後台</span>
+    </button>
+
+    <div class="back-link">
+      <a href="/">← 返回前台網站</a>
+    </div>
+  </div>
+
+  <script>
+    const pwInput  = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const errorMsg = document.getElementById("errorMsg");
+    const togglePw = document.getElementById("togglePw");
+
+    // Toggle password visibility
+    togglePw.addEventListener("click", () => {
+      const isText = pwInput.type === "text";
+      pwInput.type = isText ? "password" : "text";
+      togglePw.textContent = isText ? "👁️" : "🙈";
+    });
+
+    // Enter key
+    pwInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doLogin();
+    });
+
+    loginBtn.addEventListener("click", doLogin);
+
+    async function doLogin() {
+      const password = pwInput.value.trim();
+      if (!password) {
+        showError("請輸入密碼");
+        return;
+      }
+
+      setLoading(true);
+      clearError();
+
+      try {
+        const res = await fetch("/api/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          sessionStorage.setItem("admin_token", data.token);
+          window.location.href = "/admin/dashboard.html";
+        } else {
+          showError(data.error || "密碼錯誤，請再試一次");
+          pwInput.classList.add("error");
+          pwInput.select();
+        }
+      } catch (err) {
+        showError("連線失敗，請稍後再試");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function setLoading(on) {
+      loginBtn.disabled = on;
+      loginBtn.classList.toggle("loading", on);
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = "⚠️ " + msg;
+      pwInput.classList.add("error");
+    }
+
+    function clearError() {
+      errorMsg.textContent = "";
+      pwInput.classList.remove("error");
+    }
+
+    // If already logged in, redirect
+    if (sessionStorage.getItem("admin_token")) {
+      window.location.href = "/admin/dashboard.html";
+    }
+  </script>
+</body>
+</html>
