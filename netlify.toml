@@ -1,12 +1,14 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
+  command = "cd netlify/functions && npm install"
 
 [[headers]]
   for = "/admin/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    Cache-Control = "no-store"
 
 [[redirects]]
   from = "/api/*"
