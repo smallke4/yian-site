@@ -1,12 +1,12 @@
 // netlify/functions/data.js
-// GET  /api/data  → 回傳網站資料（公開）
+// GET  /api/data  → 回傳網站資料（公開，前台用）
 // POST /api/data  → 更新資料（需 JWT）
-// 使用新版 @netlify/functions context 來存取 Blobs
+// 使用 JSONBin.io 儲存資料
 
-const { getStore } = require("@netlify/blobs");
 const jwt = require("jsonwebtoken");
 
-const BLOB_KEY = "site-data";
+const JSONBIN_ID  = "69cefe1d36566621a8742ca4";
+const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_ID}`;
 
 const DEFAULT_DATA = {
   profile: {
@@ -53,8 +53,7 @@ function verifyToken(event) {
   try { jwt.verify(token, process.env.JWT_SECRET); return true; } catch { return false; }
 }
 
-// 新版 handler 格式：接收 (event, context)，context 包含 Blobs 憑證
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
@@ -64,21 +63,20 @@ exports.handler = async (event, context) => {
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
 
-  // 用 context 初始化 store（這樣 Blobs 就能拿到 siteID 和 token）
-  const store = getStore({ name: "site-content", consistency: "strong" });
+  const MASTER_KEY = process.env.JSONBIN_MASTER_KEY;
 
-  // GET — 公開，前台用
+  // GET — 公開，前台使用
   if (event.httpMethod === "GET") {
     try {
-      const raw = await store.get(BLOB_KEY);
-      let data = DEFAULT_DATA;
-      if (raw) {
-        try { data = JSON.parse(raw); } catch { data = DEFAULT_DATA; }
-      }
+      const res  = await fetch(`${JSONBIN_URL}/latest`, {
+        headers: { "X-Master-Key": MASTER_KEY }
+      });
+      const json = await res.json();
+      // JSONBin 回傳格式：{ record: {...}, metadata: {...} }
+      const data = (json.record && json.record.profile) ? json.record : DEFAULT_DATA;
       return { statusCode: 200, headers, body: JSON.stringify(data) };
     } catch (e) {
       console.error("GET error:", e.message);
-      // Blobs 失敗就回傳預設資料，前台不會壞掉
       return { statusCode: 200, headers, body: JSON.stringify(DEFAULT_DATA) };
     }
   }
@@ -90,7 +88,15 @@ exports.handler = async (event, context) => {
     }
     try {
       const newData = JSON.parse(event.body);
-      await store.set(BLOB_KEY, JSON.stringify(newData));
+      const res = await fetch(JSONBIN_URL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Master-Key": MASTER_KEY
+        },
+        body: JSON.stringify(newData)
+      });
+      if (!res.ok) throw new Error("JSONBin PUT failed: " + res.status);
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
     } catch (e) {
       console.error("POST error:", e.message);
